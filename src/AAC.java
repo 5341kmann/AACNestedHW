@@ -1,3 +1,4 @@
+import java.io.FileNotFoundException;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -48,8 +49,8 @@ public class AAC implements ActionListener {
 	 * @param filename the name of the file that contains the images and text that
 	 *                 will be in the AAC
 	 */
-	public AAC(String filename) {
-//		 this.page = new AACCategory("test");
+	public AAC(String filename) throws FileNotFoundException {
+//		this.page = new AACCategory("test");
 		this.page = new AACMappings(filename);
 		this.images = this.page.getImageLocs();
 		this.startIndex = 0;
@@ -148,7 +149,7 @@ public class AAC implements ActionListener {
 		pane.requestFocusInWindow();
 	}
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws FileNotFoundException {
 
 		try {
 			// Set property as Kevin Dictionary

@@ -2,6 +2,7 @@ import edu.grinnell.csc207.util.AssociativeArray;
 import edu.grinnell.csc207.util.KVPair;
 import edu.grinnell.csc207.util.KeyNotFoundException;
 import edu.grinnell.csc207.util.NullKeyException;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.Iterator;
@@ -20,14 +21,15 @@ import java.util.Scanner;
 public class AACMappings implements AACPage {
 
   AssociativeArray<String, AACCategory> categories;
-  AACCategory currentCategoryArray;
-
+  AACCategory currentCategory;
+  AACCategory homeCategory;
+  File file;
 
   /**
-   * Creates a set of mappings for the AAC based on the provided file. The file is read in to create
-   * categories and fill each of the categories with initial items. The file is formatted as the
-   * text location of the category followed by the text name of the category and then one line per
-   * item in the category that starts with
+   * Creates a set of mappings fo r the AAC based on the provided file. The file is read in to
+   * create categories and fill each of the categories with initial items. The file is formatted as
+   * the text location of the category followed by the text name of the category and then one line
+   * per item in the category that starts with
    * > and then has the file name and text of that image
    * <p>
    * for instance: img/food/plate.png food
@@ -40,29 +42,47 @@ public class AACMappings implements AACPage {
    *
    * @param filename the name of the file that stores the mapping information
    */
-  public AACMappings(String filename) {
+  public AACMappings(String filename) throws FileNotFoundException {
     this.categories = new AssociativeArray<>();
-    this.readFile(filename);
+    this.file = new File(filename);
+    this.homeCategory = new AACCategory("");
+    try {
+      this.categories.set("", homeCategory);
+    } catch (NullKeyException e) {
+//      do nothing
+    }
+
+    this.readFile();
   }
 
-  private void readFile(String filename) {
-    Scanner scan = new Scanner(filename);
+  private void readFile() throws FileNotFoundException {
+    try {
+      Scanner scan = new Scanner(this.file);
+      while (scan.hasNextLine()) {
+        String line = scan.nextLine();
 
-    while (scan.hasNextLine()) {
-      String line = scan.nextLine();
-      String[] tokens = line.split("\\s", 2);
-
-      if (tokens[0].charAt(0) == '>') {
-        currentCategoryArray.addItem(tokens[0].substring(1), tokens[1]);
-      } else {
-        try {
-          currentCategoryArray = new AACCategory(tokens[1]);
-          categories.set(tokens[1], currentCategoryArray);
-        } catch (NullKeyException e) {
+        String[] tokens = line.split("\\s", 2);
+        if (tokens.length >= 2) {
+          if (tokens[0].charAt(0) == '>') {
+            currentCategory.addItem(tokens[0].substring(1), tokens[1]);
+          } else {
+            try {
+              currentCategory = new AACCategory(tokens[1]);
+              categories.set(tokens[0], currentCategory);
+              homeCategory.addItem(tokens[0], tokens[1]);
+            } catch (NullKeyException e) {
 //					Do Nothing
-        } // try-catch
-      } // if
-    } // while
+            } // try-catch
+          } // if
+        } // if
+      } // while
+
+      this.currentCategory = homeCategory;
+
+    } catch (FileNotFoundException e) {
+      throw new FileNotFoundException();
+    }
+
   } // readFile()
 
   /**
@@ -78,19 +98,17 @@ public class AACMappings implements AACPage {
    * @throws NoSuchElementException if the image provided is not in the current category
    */
   public String select(String imageLoc) {
-    String imageCat = getImageCat(imageLoc);
-    if (imageCat.equals(currentCategoryArray.getCategory())) {
-      return currentCategoryArray.select(imageCat);
-    } else if (categories.hasKey(imageCat)) {
+    if (currentCategory.equals(homeCategory)) {
       try {
-        this.currentCategoryArray = categories.get(imageCat);
+        currentCategory = categories.get(imageLoc);
+        return "";
       } catch (KeyNotFoundException e) {
-//				do nothing
-      } // try-catch
-      return "";
-    } else {
-      throw new NoSuchElementException();
-    } // if
+        //do nothing
+      }
+    } else if (currentCategory.hasImage(imageLoc)) {
+      return currentCategory.select(imageLoc);
+    }
+    throw new NoSuchElementException();
   } // select()
 
   /**
@@ -100,14 +118,17 @@ public class AACMappings implements AACPage {
    * an empty array
    */
   public String[] getImageLocs() {
-    return currentCategoryArray.getImageLocs();
+    if (currentCategory != null) {
+      return currentCategory.getImageLocs();
+    }
+    return new String[0];
   } // getImageLocs
 
   /**
-   * Resets the current category of the AAC back to the default category
+   * Resets the current category of the AAC ≠back to the default category
    */
   public void reset() {
-
+    this.currentCategory = homeCategory;
   }
 
 
@@ -132,21 +153,22 @@ public class AACMappings implements AACPage {
 
     try {
       PrintWriter writer = new PrintWriter(filename);
-
+//    Going through categories
       while (categoriesIterator.hasNext()) {
         KVPair<String, AACCategory> pair = categoriesIterator.next();
         String catImageLoc = pair.getKey();
         AACCategory aacCat = pair.getValue();
-
-        writer.println(catImageLoc + " " + catImageLoc.);
-        Iterator<KVPair<String, String>> itemsIterator = aacCat.aa.iterator();
-        while (itemsIterator.hasNext()) {
-          KVPair<String, String> item = itemsIterator.next();
-          String itemImageLoc = item.getKey();
-          String itemName = item.getValue();
+        if (!aacCat.equals(homeCategory)) {
+          writer.println(catImageLoc + " " + aacCat.getCategory());
+          //      Processing individual category
+          for (KVPair<String, String> item : aacCat.aa) {
+            String itemImageLoc = item.getKey();
+            String itemName = item.getValue();
+            writer.println(">" + itemImageLoc + " " + itemName);
+          }
         }
       }
-
+      writer.close();
     } catch (FileNotFoundException e) {
 //        do nothing
     }
@@ -160,6 +182,15 @@ public class AACMappings implements AACPage {
    * @param text     the text associated with the image
    */
   public void addItem(String imageLoc, String text) {
+    currentCategory.addItem(imageLoc, text);
+    if (currentCategory.equals(homeCategory)) {
+      try {
+        currentCategory.addItem(imageLoc, text);
+        categories.set(imageLoc, new AACCategory(text));
+      } catch (NullKeyException e) {
+        // Do nothing
+      }
+    }
 
   }
 
@@ -170,7 +201,7 @@ public class AACMappings implements AACPage {
    * @return returns the current category or the empty string if on the default category
    */
   public String getCategory() {
-    return null;
+    return currentCategory.getCategory();
   }
 
 
@@ -182,6 +213,12 @@ public class AACMappings implements AACPage {
    * @return true if it is in the set of images that can be displayed, false otherwise
    */
   public boolean hasImage(String imageLoc) {
+//    try {
+//      String catImageLoc = getImageCat(imageLoc);
+//      return categories.get(catImageLoc).hasImage(imageLoc);
+//    } catch (Exception e) {
+//      return false;
+//    }
     return false;
   }
 

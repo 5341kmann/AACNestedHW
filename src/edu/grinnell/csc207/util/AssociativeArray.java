@@ -229,6 +229,7 @@ public Iterator<KVPair<K, V>> iterator() {
    */
   return new Iterator<KVPair<K, V>>() {
     int curIndex = 0;
+    int size = AssociativeArray.this.size;
 
     /**
      * Returns boolean indicating if there is another KVPair<K,V>
@@ -237,7 +238,7 @@ public Iterator<KVPair<K, V>> iterator() {
      * */
     @Override
     public boolean hasNext() {
-      return size<curCapacity;
+      return curIndex < size;
     } // hasNext()
 
     /**
@@ -257,5 +258,5 @@ public Iterator<KVPair<K, V>> iterator() {
       throw new UnsupportedOperationException();
     } // remove()
   };
-}
+} // Iterator()
 } // class AssociativeArray

@@ -1,4 +1,6 @@
 import edu.grinnell.csc207.util.AssociativeArray;
+import edu.grinnell.csc207.util.KVPair;
+import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 import edu.grinnell.csc207.util.AssociativeArray;
@@ -42,9 +44,24 @@ public class AACCategory implements AACPage {
    *
    * @return the array of image locations; if there are no images, it should return an empty array
    */
+//  public String[] getImageLocs() {
+//    String readOut = aa.toString().substring(1, aa.toString().length() - 1);
+//    if (readOut.isEmpty()) {
+//      return new String[] {};
+//    } else {
+//      String[] r = readOut.replaceAll(":.+,\\s", " ").replaceAll(":.+$", "").split(" ");
+//      return r;
+//    }
+//  } // getImageLocs()
   public String[] getImageLocs() {
-    String readOut = aa.toString().substring(1, aa.toString().length() - 1);
-    return readOut.replaceAll(":[^\\s]+,\\s", " ").replaceAll(":.+$", "").split(",");
+    String[] imageLocs = new String[aa.size()];
+    Iterator<KVPair<String, String>> itemIterator = aa.iterator();
+    int index = 0;
+   while(itemIterator.hasNext()) {
+     KVPair<String, String> item = itemIterator.next();
+     imageLocs[index++] = item.getKey();
+   }
+   return imageLocs;
   } // getImageLocs()
 
   /**
@@ -69,6 +86,7 @@ public class AACCategory implements AACPage {
     } catch (Exception e) {
       throw new NoSuchElementException(e);
     } // try-catch
+
   } // select()
 
   /**
